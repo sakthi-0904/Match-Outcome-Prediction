@@ -2,30 +2,55 @@
 <html>
 <head>
     <title>Match Outcome Prediction</title>
+    <script>
+        function predictOutcome() {
+            // Get input values
+            var B365H = parseFloat(document.getElementById("B365H").value);
+            var B365D = parseFloat(document.getElementById("B365D").value);
+            var B365A = parseFloat(document.getElementById("B365A").value);
+            var goal_diff = parseInt(document.getElementById("goal_diff").value);
+            var home_advantage = parseInt(document.getElementById("home_advantage").value);
+
+            var prediction = "";
+
+            // Simple prediction logic (you can improve this)
+            if (home_advantage === 1 && B365H < B365A) {
+                prediction = "Home Team Will Win";
+            } else if (home_advantage === 0 && B365A < B365H) {
+                prediction = "Away Team Will Win";
+            } else if (goal_diff > 0) {
+                prediction = "Home Team Likely to Win";
+            } else if (goal_diff < 0) {
+                prediction = "Away Team Likely to Win";
+            } else {
+                prediction = "It may be a Draw";
+            }
+
+            // Show the result
+            document.getElementById("result").innerText = "Prediction: " + prediction;
+        }
+    </script>
 </head>
 <body>
     <h1>Predict Match Outcome</h1>
-    <form method="POST">
-        <label>Bet365 Home Win Odds (B365H):</label>
-        <input type="text" name="B365H" required><br><br>
 
-        <label>Bet365 Draw Odds (B365D):</label>
-        <input type="text" name="B365D" required><br><br>
+    <label>Bet365 Home Win Odds (B365H):</label>
+    <input type="text" id="B365H" required><br><br>
 
-        <label>Bet365 Away Win Odds (B365A):</label>
-        <input type="text" name="B365A" required><br><br>
+    <label>Bet365 Draw Odds (B365D):</label>
+    <input type="text" id="B365D" required><br><br>
 
-        <label>Goal Difference:</label>
-        <input type="text" name="goal_diff" required><br><br>
+    <label>Bet365 Away Win Odds (B365A):</label>
+    <input type="text" id="B365A" required><br><br>
 
-        <label>Home Advantage (1 or 0):</label>
-        <input type="text" name="home_advantage" required><br><br>
+    <label>Goal Difference:</label>
+    <input type="text" id="goal_diff" required><br><br>
 
-        <button type="submit">Predict</button>
-    </form>
+    <label>Home Advantage (1 or 0):</label>
+    <input type="text" id="home_advantage" required><br><br>
 
-    {% if prediction %}
-    <h2>Prediction: {{ prediction }}</h2>
-    {% endif %}
+    <button onclick="predictOutcome()">Predict</button>
+
+    <h2 id="result"></h2>
 </body>
 </html>
