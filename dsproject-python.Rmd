@@ -1,0 +1,179 @@
+---
+title: "Datascience -python using"
+author: "Sakthi swetha P"
+date: "2025-04-26"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+```{python}
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from datetime import datetime
+from sklearn.model_selection import train_test_split
+from sklearn.linear_model import LogisticRegression
+from sklearn.metrics import confusion_matrix, classification_report, accuracy_score
+from sklearn.preprocessing import LabelEncoder
+
+# Load the dataset
+match_data = pd.read_csv("C:/Users/sakth/Downloads/match_data.csv")
+
+# View structure
+print(match_data.info())
+
+# Count missing values
+print(match_data.isnull().sum())
+
+```
+
+```{python}
+# Select relevant columns
+match_clean = match_data[['match_api_id', 'date', 'home_team_api_id', 'away_team_api_id',
+                          'home_team_goal', 'away_team_goal', 'B365H', 'B365D', 'B365A']].copy()
+
+# Create match_result variable
+match_clean['match_result'] = np.where(match_clean['home_team_goal'] > match_clean['away_team_goal'], 'HomeWin',
+                                np.where(match_clean['home_team_goal'] < match_clean['away_team_goal'], 'AwayWin', 'Draw'))
+
+# Fill missing betting odds with mean
+for col in ['B365H', 'B365D', 'B365A']:
+    match_clean[col] = match_clean[col].fillna(match_clean[col].mean())
+
+# Remove duplicates
+match_clean.drop_duplicates(inplace=True)
+
+
+```
+
+
+```{python}
+# Convert date and integer columns
+match_clean['date'] = pd.to_datetime(match_clean['date'])
+match_clean['home_team_api_id'] = match_clean['home_team_api_id'].astype('Int64')
+match_clean['away_team_api_id'] = match_clean['away_team_api_id'].astype('Int64')
+
+# Extract additional date features
+match_clean['day_of_week'] = match_clean['date'].dt.day_name()
+match_clean['month'] = match_clean['date'].dt.month
+match_clean['year'] = match_clean['date'].dt.year
+
+# Compute goal difference and home advantage
+match_clean['goal_diff'] = match_clean['home_team_goal'] - match_clean['away_team_goal']
+match_clean['home_advantage'] = np.where(match_clean['home_team_goal'] > match_clean['away_team_goal'], 1, 0)
+
+```
+
+
+
+```{python}
+# Match result distribution
+sns.countplot(x='match_result', data=match_clean, palette='pastel')
+plt.title("Match Result Distribution")
+plt.show()
+
+# Goal difference by match result
+sns.boxplot(x='match_result', y='goal_diff', data=match_clean, palette='spring')
+plt.title("Goal Difference by Match Result")
+plt.show()
+
+# Bet365 home odds by match result
+sns.boxplot(x='match_result', y='B365H', data=match_clean, palette='autumn')
+plt.title("Bet365 Home Odds by Match Result")
+plt.show()
+
+```
+
+
+```{python}
+print("Correlation (B365H vs home_advantage):", match_clean['B365H'].corr(match_clean['home_advantage']))
+print("Correlation (goal_diff vs home_advantage):", match_clean['goal_diff'].corr(match_clean['home_advantage']))
+
+# Prepare dataset
+X = match_clean[['B365H', 'B365D', 'B365A', 'goal_diff', 'home_advantage']]
+y = match_clean['match_result']
+
+# Encode target
+le = LabelEncoder()
+y_encoded = le.fit_transform(y)
+
+# Train-test split
+X_train, X_test, y_train, y_test = train_test_split(X, y_encoded, test_size=0.3, random_state=123)
+
+# Multinomial Logistic Regression
+model = LogisticRegression( solver='lbfgs', max_iter=1000)
+model.fit(X_train, y_train)
+
+```
+```{python}
+# Predictions
+y_pred = model.predict(X_test)
+
+# Accuracy
+print("Accuracy:", round(accuracy_score(y_test, y_pred) * 100, 2), "%")
+
+# Classification Report
+print(classification_report(y_test, y_pred, target_names=le.classes_))
+
+# Confusion Matrix
+cm = confusion_matrix(y_test, y_pred)
+sns.heatmap(cm, annot=True, fmt='d', xticklabels=le.classes_, yticklabels=le.classes_, cmap='Blues')
+plt.xlabel('Predicted')
+plt.ylabel('Actual')
+plt.title('Confusion Matrix')
+plt.show()
+
+```
+
+```{python}
+from sklearn.metrics import precision_score, recall_score, f1_score
+
+print("Precision:", precision_score(y_test, y_pred, average=None))
+print("Recall:", recall_score(y_test, y_pred, average=None))
+print("F1 Score:", f1_score(y_test, y_pred, average=None))
+
+```
+
+```{python}
+future_matches = pd.DataFrame({
+    'B365H': [2.15, 1.95, 2.75, 2.50, 2.00],
+    'B365D': [3.40, 3.25, 3.10, 3.00, 3.20],
+    'B365A': [3.05, 4.20, 3.45, 3.60, 3.50],
+    'goal_diff': [1, 0, 2, -1, 0],
+    'home_advantage': [1, 0, 1, 0, 0]
+})
+
+future_preds = model.predict(future_matches)
+# Decode the predictions
+predicted_results = le.inverse_transform(future_preds)
+
+# Print match-by-match predictions
+for i, result in enumerate(predicted_results, start=1):
+    print(f"Match {i}: {result}")
+
+```
+
